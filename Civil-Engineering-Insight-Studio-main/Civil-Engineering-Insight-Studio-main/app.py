@@ -4,6 +4,7 @@ import os
 import google.generativeai as genai
 from PIL import Image
 
+
 # 🔹 Load API Key
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
@@ -11,18 +12,19 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 # 🔹 Gemini Response Function
 def get_gemini_response(input_text, uploaded_file, prompt):
 
-    model = genai.GenerativeModel("gemini-1.5-flash")
-
     image_bytes = uploaded_file.getvalue()
 
-    response = model.generate_content([
-        input_text,
-        {
-            "mime_type": uploaded_file.type,
-            "data": image_bytes
-        },
-        prompt
-    ])
+    response = client.models.generate_content(
+        model="gemini-1.5-flash",
+        contents=[
+            input_text,
+            {
+                "mime_type": uploaded_file.type,
+                "data": image_bytes,
+            },
+            prompt,
+        ],
+    )
 
     return response.text
 
@@ -39,8 +41,9 @@ You are a civil engineer. Please describe the structure in the image and provide
 """
 
 # 🔹 Streamlit UI
+st.write("API Key:", os.getenv("GOOGLE_API_KEY"))
 st.set_page_config(page_title="Civil Engineering Insight Studio", page_icon="🏗️")
-st.header("Civil Engineering Insight Studio")
+st.header("Civil Engineering Insight Studio 🏗️")
 
 input_text = st.text_input("Input Prompt:")
 
@@ -51,7 +54,7 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image")
+    st.image(image, width="stretch")
 
 submit = st.button("Describe Structure")
 
@@ -60,10 +63,12 @@ if submit:
         st.warning("Please upload an image first.")
     else:
         try:
-            response = get_gemini_response(input_text, uploaded_file, input_prompt)
+            user_prompt = input_text if input_text else "Describe this structure in detail."
+
+            response = get_gemini_response(user_prompt, uploaded_file, input_prompt)
 
             st.subheader("Description:")
             st.write(response)
 
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
+        except Exception:
+            st.error("Something went wrong. Please check your API key or internet connection.")
